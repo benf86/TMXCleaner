@@ -60,7 +60,9 @@ public class TmxCleaner {
 			sb.append('\n');
 			lineCounter++;
 		}
+		
 		finalTextOut = sb.toString();
+		finalTextOut = finalTextOut.replaceAll("<prop.*?</prop>", ""); //Across Standard-Adherence Fail Fix
 		
 		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath),"UTF-16"));
 		
@@ -115,6 +117,8 @@ public class TmxCleaner {
 			regexFilter = "<tuv xml:lang=\"" + languageCode + "\">\n.*<seg>(.*)</seg>"; //MemoQ TMX; SDL Language Platform
 		else if (creationTool.equalsIgnoreCase("sdl trados tageditor"))
 			regexFilter = "<Tuv Lang=\"" + languageCode + "\">(.*?)</Tuv>"; //SDL TRADOS TagEditor TTX
+		else if (creationTool.equalsIgnoreCase("across"))
+			regexFilter = "<tuv xml:lang=\"" + languageCode + "\">.*<seg>(.*)</seg>"; //Across
 		else regexFilter = "TMXCleaner doesn't know what to doooo with " + creationTool + " " + languageCode;
 		
 		System.out.println("This ToMe is decoded with the incantation: " + regexFilter.replace("\n", "\\n") + "\n\n");
