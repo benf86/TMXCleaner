@@ -10,11 +10,13 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,32 +26,29 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-
+import javax.swing.ScrollPaneConstants;
 
 @SuppressWarnings("serial")
 public class TmxCleaner extends JPanel implements ActionListener {
-
-	/**
-	 * @param args
-	 * @throws IOException 
-	 */
-	
-	static String sourcePath, outputPath, tmxCleanerMessages, outputText = "";
-	static private final String currentlySupportedCATSoftware = "Currently supported CAT Software: MemoQ, SDL Language Platform, SDL TRADOS TagEditor, Across\n\nIf the TM export in XML format (usually TMX or TTX) doesn't work for one of these, let me know!\n____________________________________________________\n\n";
-	
+	static String sysLog = "";
+	static String[] tmFile = null;
 	static private final String newline = "\n";
+	static private final String welcomeMessage = "This application should work with TMX files exported by MemoQ, SDL Language Platform, SDL TRADOS TagEditor, Across, and with any other standard TMX file.\n\nIf it doesn't, please send me a sample translation unit from the TMX that doesn't work.\n\n";
 	JButton openButton, saveButton;
-	JTextArea log;
+	static JTextArea log;
 	JFileChooser fc;
 	
 	public TmxCleaner() {
 		super(new BorderLayout());
 		
 		log = new JTextArea(5,20);
+		log.setWrapStyleWord(true);
+		log.setLineWrap(true);
 		log.setMargin(new Insets(5,5,5,5));
 		log.setEditable(false);
-		JScrollPane logScrollPane = new JScrollPane(log);
-		log.append(currentlySupportedCATSoftware);
+		JScrollPane logScrollPane = new JScrollPane(log, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+				
+		log.append(welcomeMessage);
 		fc = new JFileChooser();
 		
 		openButton = new JButton("Open the source TM XML");
@@ -66,57 +65,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 		add(logScrollPane, BorderLayout.CENTER);
 	}
 	
-	public void actionPerformed(ActionEvent e) {
-		//Handle open button action.
-        if (e.getSource() == openButton) {
-            int returnVal = fc.showOpenDialog(TmxCleaner.this);
- 
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                sourcePath = file.getPath();
-                try {
-					tmxCleanerMessages = cleanTMX(sourcePath);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-                log.append("Opening source file:\t" + file.getPath() + "." + newline);
-                log.append(tmxCleanerMessages);
-            } else {
-                log.append("Open command cancelled by user." + newline);
-            }
-            log.setCaretPosition(log.getDocument().getLength());
- 
-        //Handle save button action.
-        } else if (e.getSource() == saveButton) {
-            int returnVal = fc.showSaveDialog(TmxCleaner.this);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                outputPath = file.getPath() + ".txt";
-                try {
-					saveFile();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-                log.append("\n\nSource segments exported to:\t" + file.getPath() + ".txt\n____________________________________________________\n\n");
-                try {
-                	File openFile = new File(file.getPath() + ".txt");
-					Desktop.getDesktop().open((openFile));
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-            } else {
-                log.append("Save command cancelled by user." + newline);
-            }
-            log.setCaretPosition(log.getDocument().getLength());
-        }
-    }
-	
-	
-	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				createAndShowGUI();
@@ -132,127 +81,147 @@ public class TmxCleaner extends JPanel implements ActionListener {
 		frame.setPreferredSize(d);
 		
 		
-		JTextArea textArea = new JTextArea(tmxCleanerMessages);
-		frame.getContentPane().add(textArea);
 		
 		frame.add(new TmxCleaner());
 		frame.pack();
 		frame.setVisible(true);
 	}
 	
+	public void actionPerformed(ActionEvent e) {
+		String sourcePath;
+		
+		//Handle open button action.
+        if (e.getSource() == openButton) {
+        	log.append("____________________________________________________" + newline);
+            log.append("Opening a large file can take a while. Please be patient..." + newline + newline);
+            int returnVal = fc.showOpenDialog(TmxCleaner.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = fc.getSelectedFile();
+                sourcePath = file.getPath();
+                System.out.println("Invoking cleanTMX()");
+                tmFile = cleanTMX(sourcePath);
+                log.append("TM XML file opened:\t" + file.getPath() + newline);
+				log.append("Detected file encoding:\t" + tmFile[3] + newline);
+				log.append("Detected creation CAT:\t" + tmFile[4] + newline);
+				log.append("Detected source language:\t" + tmFile[5] + newline);
+				log.append("Recognized segments:\t" + tmFile[2] + newline);
+            } else {
+                log.append("Open command cancelled by user." + newline);
+            }
+            log.setCaretPosition(log.getDocument().getLength());
+ 
+        //Handle save button action.
+        } else if (e.getSource() == saveButton) {
+        	String outputPath;
+            int returnVal = fc.showSaveDialog(TmxCleaner.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = fc.getSelectedFile();
+                outputPath = file.getPath() + ".txt";
+                saveFile(outputPath, tmFile[0]);
+                log.append("\n\nSource segments exported to:\t" + file.getPath() + ".txt\n");
+                try {
+                	File openFile = new File(file.getPath() + ".txt");
+					Desktop.getDesktop().open((openFile));
+				} catch (IOException e1) {
+					sysLog = e1.getMessage();
+				}
+            } else {
+                log.append("Save command cancelled by user." + newline);
+            }
+            log.setCaretPosition(log.getDocument().getLength());
+        }
+    }
 	
-	
-	private static String cleanTMX(String sourcePath) throws IOException {
-		String finalTextOut = "";
-		String messagesOut = "";
-		String filterPattern = "";
-		Integer lineCounter = 0;
-		String fileEncoding = getFileEncoding(sourcePath);
-		String inputFileText = "";
-		StringBuilder sb = new StringBuilder();
-		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(sourcePath), fileEncoding));
-		try {
-			String line = br.readLine();
-			while (line != null) {
-				sb.append(line);
-				sb.append('\n');
-				line = br.readLine();
-			}
-			inputFileText = sb.toString();
-		} finally {
-			sb = null;
-			sb = new StringBuilder();
-			br.close();
-		}
+	private static String[] getFile(String sourcePath) {
+		String feRe, ctRe, slRe = "";
+		String[] fileInfo = new String[4];
+			//0 = file contents
+			//1 = encoding
+			//2 = creation tool
+			//3 = source language
+		
+		Pattern fileInfoPattern;
+		Matcher fileInfoMatcher;
+		
+		//Regex filters for file info		
+		feRe = "[Ee]ncoding=\"(.*?)\"";
+		ctRe = "[Cc]reation[Tt]ool=\"(.*?)\"";
+		slRe = "[Ss][ou]*rc[e]*[Ll]ang[uage]*=\"(.*?)\"";
+		
 		
 
-		String creationTool = getCreationTool(inputFileText);
-		String languageCode = getLanguageCode(inputFileText);
+		//Get file contents
+		System.out.println("Invoking openFile()");
+		fileInfo[0] = openFile(sourcePath);
 		
-		filterPattern = setRegexFilter(creationTool, languageCode);
+		//Get file encoding
+		fileInfoPattern = Pattern.compile(feRe, Pattern.CASE_INSENSITIVE);
+		fileInfoMatcher = fileInfoPattern.matcher(fileInfo[0]);
+		while (fileInfoMatcher.find())
+				fileInfo[1] = fileInfoMatcher.group(1).toUpperCase();
+
+		//Get file creation tool
+		fileInfoPattern = Pattern.compile(ctRe);
+		fileInfoMatcher = fileInfoPattern.matcher(fileInfo[0]);
+		while (fileInfoMatcher.find())
+				fileInfo[2] = fileInfoMatcher.group(1);
 		
+		//Get TU source language
+		fileInfoPattern = Pattern.compile(slRe);
+		fileInfoMatcher = fileInfoPattern.matcher(fileInfo[0]);
+		while (fileInfoMatcher.find())
+				fileInfo[3] = fileInfoMatcher.group(1);
 		
+		System.out.println("Returning from getFile()");
+		return fileInfo;
+	}
+	
+	private static String littleFixes(String preOutputText) {
+		preOutputText = preOutputText.replaceAll("<prop.*?</prop>", ""); //Across Standard-Adherence Fail Fix
 		
-		Pattern regexPattern = Pattern.compile(filterPattern, Pattern.CASE_INSENSITIVE);
-		Matcher regexMatcher = regexPattern.matcher(inputFileText);
-		
-		while (regexMatcher.find()) {
-			sb.append(regexMatcher.group(1));
-			sb.append('\n');
-			lineCounter++;
+		//Fix HTML entities
+		preOutputText = preOutputText.replace("&lt;", "<");
+		preOutputText = preOutputText.replace("&gt;", ">");
+		preOutputText = preOutputText.replace("&amp;", "&");
+		preOutputText = preOutputText.replace("&cent;", "¢");
+		preOutputText = preOutputText.replace("&pound;", "£");
+		preOutputText = preOutputText.replace("&yen;", "¥");
+		preOutputText = preOutputText.replace("&euro;", "€");
+		preOutputText = preOutputText.replace("&sect;", "§");
+		preOutputText = preOutputText.replace("&copy;", "©");
+		preOutputText = preOutputText.replace("&reg;", "®");
+		preOutputText = preOutputText.replace("&trade;", "™");
+
+		return preOutputText;
+	}
+
+	private static void saveFile(String outputPath, String outputText) {
+		try {
+			BufferedWriter out;
+			out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath),"UTF-16"));
+			out.write(outputText);
+			out.close();
+		} catch (UnsupportedEncodingException e) {
+			sysLog = e.getMessage();
+		} catch (IOException e) {
+			sysLog = e.getMessage();
 		}
-		
-		finalTextOut = sb.toString();
-		outputText = littleFixes(finalTextOut);
-		
-		
-		messagesOut += "File was created with:\t" + creationTool + "\nFile was encoded with:\t" + fileEncoding + "\nSource text language is:\t" + languageCode;
-		messagesOut += "\nSource segments found:\t" + lineCounter;
-		return messagesOut;
 	}
-	
-	private static void saveFile() throws IOException {
-		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath),"UTF-16"));
-		out.write(outputText);
-		out.close();
-	}
-	
-	private static String getCreationTool(String inputFileText) {
-		String findCreationToolFilter = "creationtool=\"(.*?)\"";
-		Pattern findCreationToolPattern = Pattern.compile(findCreationToolFilter, Pattern.CASE_INSENSITIVE);
-		Matcher findCreationToolMatcher = findCreationToolPattern.matcher(inputFileText);
-		
-		String creationTool = "";
-				
-		while (findCreationToolMatcher.find()) {
-			if (findCreationToolMatcher.group(1) != null)
-				creationTool = findCreationToolMatcher.group(1);
-			else break;
+
+	private static String openFile(String sourcePath) {
+		String contentText = "", lineData = "", fileEncoding = "";
+		String findFileEncodingFilter = "encoding=\"(.*?)\"";
+
+		//Determine the encoding to open the file with
+		RandomAccessFile inFile;
+		try {
+			inFile = new RandomAccessFile(sourcePath,"r");
+			 lineData = inFile.readLine();
+		     inFile.close();
+		} catch (IOException e1) {
+			sysLog = e1.getMessage();
 		}
-		return creationTool;
-	}
-	
-	private static String getLanguageCode(String inputFileText) {
-		String languageCode = "";
-		String findLanguageCodeFilter = "";
-		
-		if (inputFileText.contains("srclang") == true)
-			findLanguageCodeFilter = "srclang=\"(.*?)\""; //MemoQ TMX; SDL Language Platform
-		if (inputFileText.contains("SourceLanguage") == true)
-			findLanguageCodeFilter = "SourceLanguage=\"(.*?)\""; //SDL TRADOS TagEditor TTX
-		
-		Pattern findLanguageCodePattern = Pattern.compile(findLanguageCodeFilter, Pattern.CASE_INSENSITIVE);
-		Matcher findLanguageCodeMatcher = findLanguageCodePattern.matcher(inputFileText);
-		
-		while (findLanguageCodeMatcher.find()) {
-				languageCode = findLanguageCodeMatcher.group(1);
-		}
-		if (languageCode == "")
-			languageCode = "TMXCleaner cannot determine the segment source language!";
-		
-		return languageCode;
-	}
-	
-	private static String setRegexFilter(String creationTool, String languageCode) {
-		String regexFilter = "";
-		
-		if (creationTool.equalsIgnoreCase("memoq") || creationTool.equalsIgnoreCase("sdl language platform"))
-			regexFilter = "<tuv xml:lang=\"" + languageCode + "\">\n.*<seg>(.*)</seg>"; //MemoQ TMX; SDL Language Platform
-		else if (creationTool.equalsIgnoreCase("sdl trados tageditor"))
-			regexFilter = "<Tuv Lang=\"" + languageCode + "\">(.*?)</Tuv>"; //SDL TRADOS TagEditor TTX
-		else if (creationTool.equalsIgnoreCase("across"))
-			regexFilter = "<tuv xml:lang=\"" + languageCode + "\">.*<seg>(.*)</seg>"; //Across
-		else regexFilter = "TMXCleaner doesn't know what to do with " + creationTool + " " + languageCode;
-		
-		return regexFilter;
-	}
-	
-	private static String getFileEncoding(String inputFile) throws IOException {
-		RandomAccessFile inFile = new RandomAccessFile(inputFile,"r");
-        String lineData = inFile.readLine();
-        String fileEncoding = "";
-        inFile.close();
-        String findFileEncodingFilter = "encoding=\"(.*?)\"";
+        
 		Pattern findFileEncodingPattern = Pattern.compile(findFileEncodingFilter, Pattern.CASE_INSENSITIVE);
 		Matcher findFileEncodingMatcher = findFileEncodingPattern.matcher(lineData);
 		while (findFileEncodingMatcher.find()) {
@@ -260,24 +229,66 @@ public class TmxCleaner extends JPanel implements ActionListener {
 		}
 		if (fileEncoding == "")
 			fileEncoding = "UTF-16";
-		return fileEncoding;
+		
+		System.out.println("Preliminary open for charset complete. Opening for real...");
+		
+		//Open the file
+		try {
+			StringBuilder sb = new StringBuilder();
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(sourcePath), fileEncoding));
+			String line = br.readLine();
+			while (line != null) {
+				sb.append(line);
+				sb.append(newline);
+				line = br.readLine();
+			}
+			br.close();
+			contentText = sb.toString();
+			sb = null;
+			sb = new StringBuilder();
+			System.out.println("File completely read");
+		} catch (UnsupportedEncodingException e) {
+			sysLog = e.getMessage();
+		} catch (FileNotFoundException e) {
+			sysLog = e.getMessage();
+		} catch (IOException e) {
+			sysLog = e.getMessage();
+		}
+		
+		System.out.println("Returning from openFile()");
+		return contentText;
 	}
-	
-	private static String littleFixes(String inputText) {
-		inputText = inputText.replaceAll("<prop.*?</prop>", ""); //Across Standard-Adherence Fail Fix
+
+	private static String[] cleanTMX(String sourcePath) {
+		System.out.println("Invoking getFile()");
+		String[] fileInfo = getFile(sourcePath);
+		System.out.println("Language: " + fileInfo[3]);
+		String[] outputData = new String[6];
+			//0 cleaned text
+			//1 original text
+			//2 number of segments found
+			//3 encoding
+			//4 creation tool
+			//5 source language
 		
-		inputText = inputText.replace("&lt;", "<");	//Fix HTML entities
-		inputText = inputText.replace("&gt;", ">");
-		inputText = inputText.replace("&amp;", "&");
-		inputText = inputText.replace("&cent;", "¢");
-		inputText = inputText.replace("&pound;", "£");
-		inputText = inputText.replace("&yen;", "¥");
-		inputText = inputText.replace("&euro;", "€");
-		inputText = inputText.replace("&sect;", "§");
-		inputText = inputText.replace("&copy;", "©");
-		inputText = inputText.replace("&reg;", "®");
-		inputText = inputText.replace("&trade;", "™");
+		String outputText = "";
+		String tuFilter = "<[Tt]uv (xml:)?[Ll]ang=\"" + fileInfo[3] + "\">(<seg>)?(.*?)(</seg>)?</[Tt]uv>";
+		Integer segmentCounter = 0;
+		System.out.println("Starting cleaning");
 		
-		return inputText;
+		Pattern tuPattern = Pattern.compile(tuFilter, Pattern.DOTALL);
+		Matcher tuMatcher = tuPattern.matcher(fileInfo[0]);
+		while (tuMatcher.find()) {
+			outputText += tuMatcher.group(3) + newline;
+			segmentCounter++;
+		}
+		
+		outputData[0] = littleFixes(outputText);
+		outputData[1] = fileInfo[0];
+		outputData[2] = segmentCounter.toString();
+		outputData[3] = fileInfo[1];
+		outputData[4] = fileInfo[2];
+		outputData[5] = fileInfo[3];
+		return outputData;
 	}
 }
