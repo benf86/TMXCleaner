@@ -33,7 +33,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 	static String sysLog = "";
 	static String[] tmFile = null;
 	static private final String newline = "\n";
-	static private final String welcomeMessage = "This application should work with TMX files exported by MemoQ, SDL Language Platform, SDL TRADOS TagEditor, Across, and with any other standard TMX file.\n\nIf it doesn't, please send me a sample translation unit from the TMX that doesn't work.\n\n";
+	static private final String welcomeMessage = "This application should work with TMX files exported by MemoQ, SDL Studio, SDL TRADOS TagEditor, Across, and with any other standard TMX file.\n\nIf you run across a TMX that the app can't process, please send its header and a few sample translation units to benjamin@ferreira.si, and I'll look into it.\n\nI don't take any responsibility for what you do with this app or the consequences of its use.\n\n";
 	JButton openButton, saveButton;
 	static JTextArea log;
 	JFileChooser fc;
@@ -178,6 +178,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 	
 	private static String littleFixes(String preOutputText) {
 		preOutputText = preOutputText.replaceAll("<prop.*?</prop>", ""); //Across Standard-Adherence Fail Fix
+		preOutputText = preOutputText.replaceAll("<[/]?seg>", "");
 		
 		//Fix HTML entities
 		preOutputText = preOutputText.replace("&lt;", "<");
