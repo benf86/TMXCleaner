@@ -33,7 +33,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 	static String sysLog = "";
 	static String[] tmFile = null;
 	static private final String newline = "\n";
-	static private final String welcomeMessage = "This application should work with TMX files exported by MemoQ, SDL Studio, SDL TRADOS TagEditor, Across, and with any other standard TMX file.\n\nIf you run across a TMX that the app can't process, please send its header and a few sample translation units to benjamin@ferreira.si, and I'll look into it.\n\nI don't take any responsibility for what you do with this app or the consequences of its use.\n\n";
+	static private final String welcomeMessage = "This application should work with TMX files exported by MemoQ, SDL Studio, SDL TRADOS TagEditor, Across, Transit NXT, and with any other standard TMX file.\n\nIf you run across a TMX that the app can't process, please send its header and a few sample translation units to benjamin@ferreira.si, and I'll look into it.\n\nI don't take any responsibility for what you do with this app or the consequences of its use.\n\n";
 	JButton openButton, saveButton;
 	static JTextArea log;
 	JFileChooser fc;
@@ -153,7 +153,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 		//Get file contents
 		System.out.println("Invoking openFile()");
 		fileInfo[0] = openFile(sourcePath);
-		
+
 		//Get file encoding
 		fileInfoPattern = Pattern.compile(feRe, Pattern.CASE_INSENSITIVE);
 		fileInfoMatcher = fileInfoPattern.matcher(fileInfo[0]);
@@ -273,7 +273,7 @@ public class TmxCleaner extends JPanel implements ActionListener {
 			//5 source language
 		
 		String outputText = "";
-		String tuFilter = "<[Tt]uv (xml:)?[Ll]ang=\"" + fileInfo[3] + "\">(<seg>)?(.*?)(</seg>)?</[Tt]uv>";
+		String tuFilter = "<[Tt]uv (xml:)?[Ll]ang=\"" + fileInfo[3] + "\".*?>(<seg>)?(.*?)(</seg>)?</[Tt]uv>";
 		Integer segmentCounter = 0;
 		System.out.println("Starting cleaning");
 		
