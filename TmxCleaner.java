@@ -263,7 +263,7 @@ public class TmxCleaner extends JPanel implements ActionListener, ItemListener {
                 //System.out.println("Invoking cleanTMX()");
                 tmFile = cleanTMX(sourcePath);
                 if (Integer.valueOf(tmFile[2]) > 0)
-                	log.setText("Processing successful!");
+                	log.setText("Processing successful!\n\nYou can check the results by clicking the buttons on your lower left.");
                 else
                 	log.setText("Processing seems to have failed...");
                 tmFilePathContent.setText(file.getName());
