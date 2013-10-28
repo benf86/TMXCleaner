@@ -70,7 +70,7 @@ public class TmxCleaner extends JPanel implements ActionListener, ItemListener {
 		cleanedTextButton.addActionListener(this);
 		
 		//Create FileChooser and set default directory
-		fc = new JFileChooser("E:\\Java\\TmxCleaner\\files\\tms");
+		fc = new JFileChooser();
 	}
 	
 	public static void addComponentsToPane(Container pane) {
